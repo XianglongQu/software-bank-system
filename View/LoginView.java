@@ -15,10 +15,10 @@ public class LoginView extends JFrame {
 
     private void initializeUI() {
         setTitle("登录系统");
-        setSize(400, 400); // 设置窗口大小
+        setSize(600, 400); // 设置窗口大小
         setLocationRelativeTo(null); // 窗口居中
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(3, 2, 10, 10)); // 使用网格布局
+        setLayout(new GridLayout(3, 2, 15, 15)); // 使用网格布局
 
         // 添加组件
         add(new JLabel("用户名:"));
