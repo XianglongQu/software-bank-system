@@ -89,30 +89,36 @@ public class MainController {
     }
 
 
-
-    //    private void displayTransactionHistory() {
-//        StringBuilder history = new StringBuilder("<html>交易记录：<br>");
-//        for (Transaction transaction : user.getTransactions()) {
-//            history.append(transaction.getType()).append(" - ").append(transaction.getAmount())
-//                    .append(" (").append(transaction.getTimestamp()).append(")<br>").append(user.getBalance());
-//        }
-//        history.append("</html>");
-//        JOptionPane.showMessageDialog(mainView, history.toString());
+//private void displayTransactionHistory() {
+//    StringBuilder history = new StringBuilder("<html>交易记录：<br>");
+//    for (Transaction transaction : user.getTransactions()) {
+//        history.append(transaction.getType())
+//                .append(" - ")
+//                .append(transaction.getAmount())
+//                .append(" (")
+//                .append(transaction.getTimestamp())  // 正确调用 getter 方法
+//                .append(")<br>")
+//                .append(user.getBalance());
 //    }
+//    history.append("</html>");
+//    JOptionPane.showMessageDialog(mainView, history.toString());
+//}
 private void displayTransactionHistory() {
     StringBuilder history = new StringBuilder("<html>交易记录：<br>");
     for (Transaction transaction : user.getTransactions()) {
         history.append(transaction.getType())
                 .append(" - ")
-                .append(transaction.getAmount())
-                .append(" (")
-                .append(transaction.getTimestamp())  // 正确调用 getter 方法
-                .append(")<br>")
-                .append(user.getBalance());
+                .append(String.format("%.2f", transaction.getAmount()))
+                .append(" 元 (")
+                .append(transaction.getTimestamp())
+                .append(") - 余额: ")
+                .append( user.getBalance())
+                .append(" 元<br>");  // 每条记录后都添加换行
     }
     history.append("</html>");
-    JOptionPane.showMessageDialog(mainView, history.toString());
+    JOptionPane.showMessageDialog(mainView, history.toString(), "交易历史", JOptionPane.INFORMATION_MESSAGE);
 }
+
 
 
     private void openTaskPage() {
