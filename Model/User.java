@@ -68,23 +68,36 @@ public class User {
     }
 
     // 验证用户的凭证
-    public static boolean validate(String username, String password) {
+    public static User validate(String username, String password) {
         try {
-            String path = "users.json";  // JSON文件的路径，存储所有用户数据
+            String path = "users.json";  // JSON文件的路径
             String data = new String(Files.readAllBytes(Paths.get(path)));
             JSONArray jsonArray = new JSONArray(data);
 
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject userObj = jsonArray.getJSONObject(i);
-                if (userObj.getString("username").equals(username) &&
-                        userObj.getString("password").equals(password)) {
-                    return true;
+                if (userObj.getString("username").equals(username) && userObj.getString("password").equals(password)) {
+                    List<String> familyMembers = new ArrayList<>();
+                    JSONArray membersJson = userObj.optJSONArray("familyMembers");
+                    if (membersJson != null) {
+                        for (int j = 0; j < membersJson.length(); j++) {
+                            familyMembers.add(membersJson.getString(j));
+                        }
+                    }
+                    return new User(
+                            userObj.getString("username"),
+                            userObj.getString("password"),
+                            userObj.getString("userType"),
+                            familyMembers,
+                            userObj.getString("currency"),
+                            userObj.getDouble("balance")
+                    );
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return false;
+        return null;  // 如果没有找到匹配的用户，返回null
     }
 
     public static boolean registerUser(String path, User newUser) {
@@ -177,6 +190,10 @@ public class User {
     }
     public String getPassword(){
         return password;
+    }
+
+    public String getCurrency() {
+        return currency;
     }
 }
 
