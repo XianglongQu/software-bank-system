@@ -31,8 +31,14 @@ public class RegisterController {
         java.util.List<String> familyMembers = registerView.getFamilyMembers();
         String currency = registerView.getCurrency();
 
-        User newUser = new User(username, password, userType, familyMembers, currency);
+        // 假设注册时账户初始余额为0
+        double initialBalance = 0.0;
+
+        // 在注册用户时创建新的 User 对象
+        User newUser = new User(username, password, userType, familyMembers, currency, initialBalance);
+
         boolean success = User.registerUser("users.json", newUser);
+
 
         if (success) {
             JOptionPane.showMessageDialog(registerView, "注册成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
