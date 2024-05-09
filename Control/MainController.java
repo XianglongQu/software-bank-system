@@ -28,37 +28,92 @@ public class MainController {
     }
 
     private void handleDeposit() {
-        // 以下是简化示例，实际操作可能涉及弹出对话框等获取详细信息
         String amountString = JOptionPane.showInputDialog(mainView, "请输入存款金额:");
+        if (amountString == null || amountString.isEmpty()) {
+            JOptionPane.showMessageDialog(mainView, "存款取消或输入无效！", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String[] options = {"活期", "死期"};
+        int depositType = JOptionPane.showOptionDialog(mainView, "请选择存款类型:", "存款类型",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options, options[0]);
+
+        String duration = "";
+        if (depositType == 1) { // 死期存款
+            duration = JOptionPane.showInputDialog(mainView, "请输入存款的锁定天数（1秒=1天）:");
+            if (duration == null || duration.isEmpty()) {
+                JOptionPane.showMessageDialog(mainView, "未输入锁定时间，存款取消！", "错误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+
         try {
             double amount = Double.parseDouble(amountString);
-            user.deposit(amount, "活期", ""); // 假设是活期存款
+            if (depositType == 0) {
+                user.deposit(amount, "活期", "");
+            } else {
+                user.deposit(amount, "死期", duration);
+            }
             JOptionPane.showMessageDialog(mainView, "存款成功！");
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(mainView, "请输入有效的金额！", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
-
     private void handleWithdraw() {
         String amountString = JOptionPane.showInputDialog(mainView, "请输入取款金额:");
+        if (amountString == null || amountString.isEmpty()) {
+            JOptionPane.showMessageDialog(mainView, "取款取消或输入无效！", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // 提供用户选择存款类型
+        String[] options = {"活期", "死期"};
+        int typeChoice = JOptionPane.showOptionDialog(mainView, "请选择取款类型:", "取款类型",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options, options[0]);
+        if (typeChoice == -1) {  // 用户未做选择
+            JOptionPane.showMessageDialog(mainView, "未选择取款类型，取款取消！", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String type = options[typeChoice];  // 获取选择的存款类型
+
         try {
             double amount = Double.parseDouble(amountString);
-            user.withdraw(amount, "活期");
+            user.withdraw(amount, type);  // 现在传递了两个参数
             JOptionPane.showMessageDialog(mainView, "取款成功！");
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(mainView, "请输入有效的金额！", "错误", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {  // 更广泛的异常捕捉，包括自定义逻辑可能抛出的异常
             JOptionPane.showMessageDialog(mainView, e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void displayTransactionHistory() {
-        StringBuilder history = new StringBuilder("<html>交易记录：<br>");
-        for (Transaction transaction : user.getTransactions()) {
-            history.append(transaction.getType()).append(" - ").append(transaction.getAmount())
-                    .append(" (").append(transaction.getTimestamp()).append(")<br>");
-        }
-        history.append("</html>");
-        JOptionPane.showMessageDialog(mainView, history.toString());
+
+
+    //    private void displayTransactionHistory() {
+//        StringBuilder history = new StringBuilder("<html>交易记录：<br>");
+//        for (Transaction transaction : user.getTransactions()) {
+//            history.append(transaction.getType()).append(" - ").append(transaction.getAmount())
+//                    .append(" (").append(transaction.getTimestamp()).append(")<br>").append(user.getBalance());
+//        }
+//        history.append("</html>");
+//        JOptionPane.showMessageDialog(mainView, history.toString());
+//    }
+private void displayTransactionHistory() {
+    StringBuilder history = new StringBuilder("<html>交易记录：<br>");
+    for (Transaction transaction : user.getTransactions()) {
+        history.append(transaction.getType())
+                .append(" - ")
+                .append(transaction.getAmount())
+                .append(" (")
+                .append(transaction.getTimestamp())  // 正确调用 getter 方法
+                .append(")<br>")
+                .append(user.getBalance());
     }
+    history.append("</html>");
+    JOptionPane.showMessageDialog(mainView, history.toString());
+}
+
 
     private void openTaskPage() {
         // 打开任务页面逻辑
