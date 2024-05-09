@@ -1,5 +1,5 @@
 package View;
-
+import Model.User;
 import javax.swing.*;
 import java.awt.*;
 
@@ -13,11 +13,11 @@ public class MainView extends JFrame {
     private JButton shopButton;
     private JButton regulationButton;
 
-    public MainView(String username, double balance) {
-        initializeUI(username, balance);
+    public MainView(User user) {
+        initializeUI(user.getUsername());
     }
 
-    private void initializeUI(String username, double balance) {
+    private void initializeUI(String username) {
         setTitle("主页面");
         setSize(600, 400); // 设置窗口大小
         setLayout(new FlowLayout()); // 使用流式布局
@@ -25,7 +25,7 @@ public class MainView extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // 用户信息显示
-        userInfoLabel = new JLabel("用户名: " + username + " | 余额: " + balance);
+        userInfoLabel = new JLabel("用户名: " + username);
         add(userInfoLabel);
 
         // 存款按钮
