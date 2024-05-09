@@ -1,10 +1,11 @@
 package Model;
-
+import java.time.LocalDateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +18,6 @@ public class User {
     private double balance; // 用户余额
     private List<Transaction> transactions; // 交易记录
 
-    // 无参数构造器
     // 无参数构造器
     public User() {
         this.familyMembers = new ArrayList<>();
@@ -36,39 +36,70 @@ public class User {
     // 带参数的构造器
 
     // 加载用户数据
-    public static User loadUser(String path) {
+    public static List<User> loadUsers(String path) {
+        List<User> users = new ArrayList<>();
         try {
             String data = new String(Files.readAllBytes(Paths.get(path)));
-            JSONObject json = new JSONObject(data);
-            JSONArray membersJson = json.optJSONArray("familyMembers");
-            List<String> members = new ArrayList<>();
-            if (membersJson != null) {
-                for (int i = 0; i < membersJson.length(); i++) {
-                    members.add(membersJson.getString(i));
+            JSONArray jsonArray = new JSONArray(data);  // 使用 JSONArray 来解析
+
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject json = jsonArray.getJSONObject(i);
+                List<String> familyMembers = new ArrayList<>();
+                JSONArray membersJson = json.optJSONArray("familyMembers");
+                if (membersJson != null) {
+                    for (int j = 0; j < membersJson.length(); j++) {
+                        familyMembers.add(membersJson.getString(j));
+                    }
                 }
+                users.add(new User(
+                        json.getString("username"),
+                        json.getString("password"),
+                        json.getString("userType"),
+                        familyMembers,
+                        json.getString("currency"),
+                        json.getDouble("balance")
+                ));
             }
-            return new User(
-                    json.getString("username"),
-                    json.getString("password"),
-                    json.getString("userType"),
-                    members,
-                    json.getString("currency"),
-                    json.optDouble("balance", 0.0) // Default to 0 if not specified
-            );
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            System.out.println("Error loading user data: " + e.getMessage());
         }
+        return users;
     }
 
     // 验证用户的凭证
-    public boolean validate(String username, String password) {
-        return this.username.equals(username) && this.password.equals(password);
+    public static boolean validate(String username, String password) {
+        try {
+            String path = "users.json";  // JSON文件的路径，存储所有用户数据
+            String data = new String(Files.readAllBytes(Paths.get(path)));
+            JSONArray jsonArray = new JSONArray(data);
+
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject userObj = jsonArray.getJSONObject(i);
+                if (userObj.getString("username").equals(username) &&
+                        userObj.getString("password").equals(password)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
-    // 注册新用户并保存到 JSON 文件
     public static boolean registerUser(String path, User newUser) {
         try {
+            File file = new File(path);
+            JSONArray usersArray;
+
+            // 检查文件是否存在并且不为空
+            if (file.exists() && file.length() != 0) {
+                String data = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
+                usersArray = new JSONArray(data);  // 加载现有用户数组
+            } else {
+                usersArray = new JSONArray();  // 创建一个新的JSON数组，如果文件不存在或为空
+            }
+
             JSONObject newUserJson = new JSONObject();
             newUserJson.put("username", newUser.username);
             newUserJson.put("password", newUser.password);
@@ -77,8 +108,11 @@ public class User {
             newUserJson.put("currency", newUser.currency);
             newUserJson.put("balance", newUser.balance);
 
-            // 这里简单地将新用户信息添加到文件，实际应用可能需要更复杂的逻辑来存储用户数据
-            Files.write(Paths.get(path), newUserJson.toString().getBytes());
+            // 将新用户添加到数组
+            usersArray.put(newUserJson);
+
+            // 将更新后的数组写回文件
+            Files.write(Paths.get(path), usersArray.toString().getBytes(StandardCharsets.UTF_8));
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -86,17 +120,43 @@ public class User {
         }
     }
 
+
     // 存款
     public void deposit(double amount, String type, String duration) {
-        this.balance += amount;
-        this.transactions.add(new Transaction("Deposit", amount, type, duration));
+        if ("死期".equals(type) && !duration.isEmpty()) {
+            try {
+                int lockDays = Integer.parseInt(duration);
+                // 正确处理锁定时间
+                LocalDateTime lockUntil = LocalDateTime.now().plusSeconds(lockDays);  // 如果一秒代表一天，则应使用plusDays
+                this.transactions.add(new Transaction("Deposit", amount, type, lockUntil));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("锁定时间必须为数字");
+            }
+        } else {
+            // 对于活期存款，没有锁定时间
+            this.transactions.add(new Transaction("Deposit", amount, type, null)); // 使用null代表没有锁定时间
+        }
+        this.balance += amount;  // 更新余额
     }
+
+
+
 
     // 取款
     public void withdraw(double amount, String type) throws Exception {
+        // 检查是否有足够的余额和是否满足死期存款的锁定期条件
         if (this.balance >= amount) {
-            this.balance -= amount;
-            this.transactions.add(new Transaction("Withdrawal", amount, type, null));
+            // 检查所有存款交易以确保没有锁定期未到的死期存款
+            for (Transaction transaction : this.transactions) {
+                if (transaction.getType().equals("Deposit") && "死期".equals(type)) {
+                    if (transaction.getLockUntil() != null && LocalDateTime.now().isBefore(transaction.getLockUntil())) {
+                        throw new Exception("死期存款的锁定期尚未结束，不能取款");
+                    }
+                }
+            }
+
+            this.balance -= amount;  // 扣减金额
+            this.transactions.add(new Transaction("Withdrawal", amount, null, null));  // 记录交易
         } else {
             throw new Exception("Insufficient funds");
         }
@@ -110,6 +170,13 @@ public class User {
     // 获取交易记录
     public List<Transaction> getTransactions() {
         return this.transactions;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+    public String getPassword(){
+        return password;
     }
 }
 
